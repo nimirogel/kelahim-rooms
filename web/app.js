@@ -645,7 +645,7 @@ function bookingRow(s) {
   const depPill = dep ? (s.depositStatus === "returned" ? `<span class="pill paid">פיקדון הוחזר</span>` : s.depositStatus === "withheld" ? `<span class="pill cancelled">פיקדון לא הוחזר</span>` : co ? `<span class="pill pending">הזדכות לבדיקה</span>` : `<span class="pill" style="background:var(--soft);color:var(--fg)">פיקדון ${money(dep)}</span>`) : "";
   const coWa = dep && !co && s.token ? waLink(det.phone, `שלום ${det.name || ""}, תודה שהשכרת את ${rr?.r.name || ""}. כדי לקבל את הפיקדון בחזרה, צלם/י את המבנה נקי והעלה/י את התמונות כאן:\n${checkoutLink(s.token, s.id)}`) : "";
   return `<div class="bk"><div class="t">${tr(esc(s.start), esc(s.end))}${s.endDate && s.endDate !== s.date ? `<div class="small muted" style="font-weight:400">עד ${esc(heDate(s.endDate))}</div>` : ""}${S.adminTab === "bookings" && s.status === "cancelled" ? `<div class="small muted" style="font-weight:400">${esc(heDate(s.date))}</div>` : ""}</div>
-    <div style="min-width:0"><div class="row" style="gap:6px"><b>${esc(rr?.r.name || "חדר שנמחק")}</b><span class="pill ${s.status}">${STATUS[s.status]}</span>${s.detailId && s.series ? `<span class="pill" style="background:var(--soft);color:var(--fg)">חוזר</span>` : ""}${s.reminded && s.status !== "cancelled" ? `<span class="pill paid">נשלחה תזכורת</span>` : ""}${owesRefund ? `<span class="pill pending">להחזיר ${money(s.price)}</span>` : ""}${s.refundedAt ? `<span class="pill cancelled">הוחזר</span>` : ""}${s.status === "cancelled" && s.paidAt && s.refund === "none" ? `<span class="pill cancelled">ללא החזר</span>` : ""}${depPill}</div>
+    <div style="min-width:0"><div class="row" style="gap:6px"><b>${esc(rr?.r.name || "חדר שנמחק")}</b><span class="pill ${s.status}">${STATUS[s.status]}</span>${s.detailId && s.series ? `<span class="pill" style="background:var(--soft);color:var(--fg)">חוזר</span>` : ""}${s.reminded && s.status !== "cancelled" ? `<span class="pill paid">${s.reminderVia === "whatsapp" ? "תזכורת נשלחה אוטומטית" : "נשלחה תזכורת"}</span>` : ""}${s.reminderVia === "whatsapp_failed" && s.status !== "cancelled" ? `<span class="pill pending" title="${esc(s.reminderError || "")}">התזכורת האוטומטית נכשלה</span>` : ""}${owesRefund ? `<span class="pill pending">להחזיר ${money(s.price)}</span>` : ""}${s.refundedAt ? `<span class="pill cancelled">הוחזר</span>` : ""}${s.status === "cancelled" && s.paidAt && s.refund === "none" ? `<span class="pill cancelled">ללא החזר</span>` : ""}${depPill}</div>
       <div class="small">${det.residency === "outside" ? `<span class="pill" style="background:var(--sun-soft);color:var(--sun-text)">תושב חוץ</span> ` : ""}${det.name ? esc(det.name) + " · " : ""}<span class="num" dir="ltr">${esc(det.phone || "")}</span>${det.purpose ? " · " + esc(det.purpose) : ""}${det.people ? " · " + esc(det.people) + " משתתפים" : ""}</div>
       <div class="small muted">${esc(s.optionName || "")} · ${money(s.price)}${s.source === "manual" ? " · הוזן ידנית" : ""}</div>
       ${co ? `<div class="small">${co.via === "whatsapp" ? "השוכר דיווח שהתמונות נשלחו בוואטסאפ." : `הזדכות עם ${(co.photos || []).length} תמונות`}${co.note ? ` · הערה: ${esc(co.note)}` : ""}</div>` : ""}
@@ -673,7 +673,7 @@ function bindRows(body) {
     rerender();
   });
   body.querySelectorAll("[data-copyco]").forEach(x => x.onclick = () => navigator.clipboard.writeText(x.dataset.copyco).then(() => toast("הקישור הועתק"), () => toast(x.dataset.copyco)));
-  body.querySelectorAll("[data-remind]").forEach(x => x.addEventListener("click", () => { api.updateSlot(x.dataset.remind, { reminded: new Date().toISOString() }).then(refreshSlots).catch(() => {}); }));
+  body.querySelectorAll("[data-remind]").forEach(x => x.addEventListener("click", () => { api.updateSlot(x.dataset.remind, { reminded: new Date().toISOString(), reminderVia: "manual" }).then(refreshSlots).catch(() => {}); }));
   body.querySelectorAll("[data-cancel]").forEach(x => x.onclick = () => {
     if (x.dataset.armed !== "1") { x.dataset.armed = "1"; x.textContent = `לאשר? (${x.dataset.refund})`; return; }
     const s = S.slots.find(y => y.id === x.dataset.cancel); if (s) up(s.id, cancelData(s, "admin"), "ההזמנה בוטלה והחדר שוחרר", x);
@@ -748,7 +748,7 @@ function adminBookings(body) {
       <div class="stat"><span class="small muted">${refunds.length ? "החזרים לביצוע" : "ממתינות לתשלום"}</span><b style="color:var(--part)">${refunds.length || unpaid.length}</b></div>
       <div class="stat"><span class="small muted">הכנסות צפויות</span><b>${money(active.reduce((a, s) => a + Number(s.price || 0), 0))}</b></div>
     </div>
-    <section class="section"><div class="stack" style="gap:4px"><h2>תזכורות לשליחה</h2><p class="small muted">הזמנות ב־${H} השעות הקרובות. הכפתור פותח וואטסאפ עם הודעה מוכנה לשוכר.</p></div>
+    <section class="section"><div class="stack" style="gap:4px"><h2>תזכורות לשליחה</h2><p class="small muted">${S.config.waAuto ? `תזכורות נשלחות אוטומטית בוואטסאפ ${H} שעות לפני. כאן מופיעות רק הזמנות שהתזכורת האוטומטית אליהן לא יצאה.` : `הזמנות ב־${H} השעות הקרובות. הכפתור פותח וואטסאפ עם הודעה מוכנה לשוכר.`}</p></div>
       ${due.length ? `<div>${due.map(row).join("")}</div>` : `<p class="muted">אין תזכורות שממתינות לשליחה.</p>`}</section>
     <section class="section"><h2>כל ההזמנות הקרובות</h2>
       ${all.length ? Object.entries(byDate).map(([d, list]) => `<div class="datehead">${heDateY(d)}</div>${list.map(row).join("")}`).join("") : `<div class="empty">עדיין אין הזמנות. הזמנות חדשות יופיעו כאן מיד.</div>`}</section>
@@ -823,6 +823,8 @@ function adminGeneral(body) {
       <label for="gOut">מחיר לתושבי חוץ (% ממחיר התושבים)<input id="gOut" type="number" min="100" step="5" data-g="outsidePct" value="${esc(D.outsidePct ?? 150)}"></label>
       <label for="gPolicy">נוסח תנאי הביטול (מוצג לשוכרים)<textarea id="gPolicy" data-g="cancelPolicy" rows="3" placeholder="${esc(policyText())}">${esc(D.cancelPolicy || "")}</textarea></label>
       <label for="gMinP">מספר תמונות מינימלי בהזדכות<input id="gMinP" type="number" min="1" data-g="minCheckoutPhotos" value="${esc(D.minCheckoutPhotos ?? 3)}"></label>
+      <label class="inline" for="gWa"><input type="checkbox" id="gWa" ${D.waAuto ? "checked" : ""}> שליחת תזכורת אוטומטית לשוכר בוואטסאפ (דרך WhatsApp של Meta)</label>
+      ${D.waAuto ? `<label for="gWaT">שם תבנית ההודעה המאושרת ב-Meta<input id="gWaT" data-g="waTemplate" dir="ltr" style="text-align:right" value="${esc(D.waTemplate || "booking_reminder")}"></label>` : ""}
       <label for="gRem">להציג תזכורת כמה שעות לפני ההזמנה<input id="gRem" type="number" min="1" data-g="reminderHours" value="${esc(D.reminderHours)}"></label>
     </div>
     <div class="ed-sec"><h3>לוגו</h3>
@@ -835,6 +837,7 @@ function adminGeneral(body) {
     </div></div>`;
   body.querySelectorAll("[data-g]").forEach(x => x.oninput = () => { D[x.dataset.g] = numv(x.dataset.g, x.value); markDirty(); });
   $("#gEx")?.addEventListener("change", e => { D.example = e.target.checked; markDirty(); });
+  $("#gWa")?.addEventListener("change", e => { D.waAuto = e.target.checked; markDirty(); rerender(); });
   $("#logoDel")?.addEventListener("click", () => { delete D.logoId; markDirty(); rerender(); });
   $("#logoIn")?.addEventListener("change", async e => {
     const f = e.target.files?.[0]; if (!f) return; const msg = $("#logoMsg"); msg.textContent = "מעלה…";

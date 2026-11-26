@@ -10,10 +10,10 @@
     id: r.id, roomId: r.room_id, date: String(r.date).slice(0, 10), start: r.start_time ?? r.start, end: r.end_time ?? r.end,
     endDate: r.end_date ? String(r.end_date).slice(0, 10) : undefined, status: r.status || "pending", price: r.price, optionName: r.option_name,
     series: r.series, detailId: r.booking_id, paidAt: r.paid_at, cancelledAt: r.cancelled_at, cancelledBy: r.cancelled_by,
-    refund: r.refund, refundedAt: r.refunded_at, reminded: r.reminded_at, deposit: r.deposit, depositStatus: r.deposit_status,
+    refund: r.refund, refundedAt: r.refunded_at, reminded: r.reminded_at, reminderVia: r.reminder_via, reminderError: r.reminder_error, deposit: r.deposit, depositStatus: r.deposit_status,
     checkout: r.checkout, createdAt: r.created_at, source: r.bookings?.source, token: r.bookings?.token, booking: r.bookings
   });
-  const SNAKE = { status: "status", paidAt: "paid_at", cancelledAt: "cancelled_at", cancelledBy: "cancelled_by", refund: "refund", refundedAt: "refunded_at", reminded: "reminded_at", depositStatus: "deposit_status", depositAt: "deposit_at", checkout: "checkout" };
+  const SNAKE = { status: "status", paidAt: "paid_at", cancelledAt: "cancelled_at", cancelledBy: "cancelled_by", refund: "refund", refundedAt: "refunded_at", reminded: "reminded_at", reminderVia: "reminder_via", depositStatus: "deposit_status", depositAt: "deposit_at", checkout: "checkout" };
   const toSnake = patch => Object.fromEntries(Object.entries(patch).filter(([k]) => SNAKE[k]).map(([k, v]) => [SNAKE[k], v]));
   const fromBooking = b => ({ ...b, roomId: b.room_id, optionName: b.option_name, slots: (b.slots || []).map(s => toSlot({ ...s, booking_id: b.id })) });
 
