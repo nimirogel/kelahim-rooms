@@ -1,7 +1,7 @@
 // Data layer: Supabase when web/config.js is filled in, otherwise an in-browser demo with sample data.
 (() => {
   const CFG = window.KELAHIM || {};
-  const ERRS = ["missing_email", "clash", "past_time", "missing_details", "room_not_found", "option_not_found", "too_long", "bad_block", "bad_time", "nothing_to_cancel", "checkout_not_allowed"];
+  const ERRS = ["missing_email", "clash", "past_time", "missing_details", "room_not_found", "option_not_found", "too_long", "bad_block", "bad_time", "nothing_to_cancel", "checkout_not_allowed", "not_admin", "not_found"];
   const errCode = e => { const m = String(e?.message || e?.code || e || ""); return ERRS.find(c => m.includes(c)) || "unavailable"; };
   const fail = e => { throw { code: errCode(e) }; };
 
@@ -21,7 +21,7 @@
     // the site is set up for the real database but the library did not load: report it, never show demo data
     const down = async () => { throw { code: "unavailable" }; };
     window.api = { mode: "live", isAdmin: async () => false, loadSettings: down, listSlots: down, getBookings: down, createBooking: down, cancelMine: down,
-      uploadCheckoutPhoto: down, submitCheckout: down, updateSlot: down, uploadSiteImage: down, signedUrls: async () => ({}), signIn: down, signOut: async () => {} };
+      uploadCheckoutPhoto: down, submitCheckout: down, updateSlot: down, adminUpdateSlot: down, adminDeleteSlot: down, uploadSiteImage: down, signedUrls: async () => ({}), signIn: down, signOut: async () => {} };
     return;
   }
   if (CFG.supabaseUrl && CFG.supabaseAnonKey && window.supabase) {
@@ -49,6 +49,8 @@
       },
       async submitCheckout(token, slot, photos, note, via) { const { error } = await sb.rpc("submit_checkout", { tok: token, slot, photos, note, via }); if (error) fail(error); },
       async updateSlot(id, patch) { const { error } = await sb.from("slots").update(toSnake(patch)).eq("id", id); if (error) fail(error); },
+      async adminUpdateSlot(p) { const { error } = await sb.rpc("admin_update_slot", { p }); if (error) fail(error); },
+      async adminDeleteSlot(id, whole) { const { data, error } = await sb.rpc("admin_delete_slot", { slot_id: id, whole: !!whole }); if (error) fail(error); return data; },
       async uploadSiteImage(blob) {
         const ext = ((blob.type || "image/jpeg").split("/")[1] || "jpg").replace("svg+xml", "svg").replace("jpeg", "jpg");
         const path = `img-${Date.now()}.${ext}`;
@@ -135,6 +137,35 @@
       s.checkout = { photos, note, via, at: new Date().toISOString() }; s.deposit_status = "review"; save();
     },
     async updateSlot(sid, patch) { await load(); const s = st.slots.find(x => x.id === sid); if (s) Object.assign(s, toSnake(patch)); save(); },
+    async adminUpdateSlot(p) {
+      await load(); if (!st.admin) throw { code: "not_admin" };
+      const s = st.slots.find(x => x.id === p.slot_id); if (!s) throw { code: "not_found" };
+      const b = st.bookings.find(x => x.id === s.booking_id), has = k => k in p;
+      if ((has("name") && String(p.name).trim().length < 2) || (has("phone") && String(p.phone).replace(/\D/g, "").length < 9)) throw { code: "missing_details" };
+      if (String(p.email || "").trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(p.email).trim())) throw { code: "missing_email" };
+      if (has("date") || has("start") || has("end")) {
+        const d = p.date || s.date, span = s.end_date ? Math.round((ms(s.end_date, "00:00") - ms(s.date, "00:00")) / 864e5) : 0;
+        const ed = span ? ymd(new Date(ms(d, "12:00") + span * 864e5)) : d, a = p.start || s.start_time, z = p.end || s.end_time;
+        const starts = ms(d, a), ends = ms(ed, z), room = findRoom(st.settings, s.room_id), buf = Number(room?.bufferMin || 0) * 60000;
+        if (ends <= starts) throw { code: "bad_time" };
+        if (st.slots.some(o => o !== s && o.room_id === s.room_id && o.status !== "cancelled" && starts < o.ends + buf && o.starts < ends + buf)) throw { code: "clash" };
+        Object.assign(s, { date: d, end_date: span ? ed : null, start_time: a, end_time: z, starts, ends });
+      }
+      if (has("price")) s.price = Math.max(0, Number(p.price) || 0);
+      for (const k of ["name", "phone", "email", "purpose"]) if (has(k)) b[k] = String(p[k]).trim() || null;
+      if (has("people")) b.people = p.people ? Number(p.people) : null;
+      if (p.residency === "local" || p.residency === "outside") b.residency = p.residency;
+      b.total = st.slots.filter(x => x.booking_id === b.id && x.status !== "cancelled").reduce((t, x) => t + x.price, 0);
+      save();
+    },
+    async adminDeleteSlot(sid, whole) {
+      await load(); if (!st.admin) throw { code: "not_admin" };
+      const s = st.slots.find(x => x.id === sid); if (!s) throw { code: "not_found" };
+      const before = st.slots.length;
+      st.slots = st.slots.filter(x => whole ? x.booking_id !== s.booking_id : x.id !== sid);
+      if (!st.slots.some(x => x.booking_id === s.booking_id)) st.bookings = st.bookings.filter(b => b.id !== s.booking_id);
+      save(); return before - st.slots.length;
+    },
     async uploadSiteImage(blob) { return await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); }); },
     async signedUrls(paths) { return Object.fromEntries(paths.map(p => [p, p])); },
     async resetDemo() { localStorage.removeItem(KEY); st = null; }

@@ -638,7 +638,7 @@ function renderAdmin(app) {
     <div class="seg atabs" role="tablist">${tabs.map(([k, t]) => `<button role="tab" aria-selected="${S.adminTab === k}" data-tab="${k}">${t}</button>`).join("")}</div><div id="adminBody"></div>`;
   app.querySelectorAll("[data-tab]").forEach(x => x.onclick = () => { S.adminTab = x.dataset.tab; render(); });
   $("#logout").onclick = async () => { await api.signOut(); S.isAdmin = false; await refreshSlots(); go("public"); };
-  const body = $("#adminBody");
+  const body = $("#adminBody"); S.rowSeq = 0;
   if (S.adminTab === "report") adminReport(body); else if (S.adminTab === "calendar") adminCalendar(body); else if (S.adminTab === "bookings") adminBookings(body); else if (S.adminTab === "rooms") adminRooms(body); else adminGeneral(body);
   if (S.adminTab === "rooms" || S.adminTab === "general") renderSaveBar();
 }
@@ -650,6 +650,7 @@ function reminderText(s, det) {
 }
 
 function bookingRow(s) {
+  const k = S.rowSeq = (S.rowSeq || 0) + 1, editing = S.editSlot === s.id && S.editKey === k;
   const det = S.details[s.id] || {}, rr = rById(s.roomId), wl = waLink(det.phone, reminderText(s, det));
   const owesRefund = s.status === "cancelled" && s.paidAt && s.refund === "full" && !s.refundedAt;
   const ended = slotEndMs(s) <= Date.now(), dep = s.status !== "cancelled" ? depAmt(s) : 0, co = s.checkout, photos = (co?.photos || []).map(photoUrl).filter(Boolean);
@@ -664,12 +665,39 @@ function bookingRow(s) {
     <div class="acts">${s.status === "pending" ? `<button data-paid="${esc(s.id)}">סימון שולם</button>` : ""}
       ${owesRefund ? `<button data-refunded="${esc(s.id)}">סימון הוחזר</button>` : ""}
       ${s.status !== "cancelled" && !ended && wl ? `<a class="btn" href="${esc(wl)}" target="_blank" rel="noopener" data-remind="${esc(s.id)}">תזכורת</a>` : ""}
-      ${s.status !== "cancelled" && !ended ? `<button class="danger" data-cancel="${esc(s.id)}" data-refund="${refundFor(s) === "full" ? "החזר מלא" : "ללא החזר"}">ביטול</button>` : ""}
+      <button data-edit="${esc(s.id)}" data-key="${k}" aria-expanded="${editing}">${editing ? "סגירת עריכה" : "עריכה"}</button>
+      ${s.status !== "cancelled" ? `<button class="danger" data-cancel="${esc(s.id)}" data-refund="${refundFor(s) === "full" ? "החזר מלא" : "ללא החזר"}">ביטול</button>` : ""}
       ${coWa ? `<a class="btn" href="${esc(coWa)}" target="_blank" rel="noopener">קישור הזדכות</a>` : ""}
       ${dep && !co && s.token ? `<button data-copyco="${esc(checkoutLink(s.token, s.id))}">העתקת קישור</button>` : ""}
       ${(co?.photos || []).length ? `<button data-photos="${esc(s.id)}">${S.openPhotos?.[s.id] ? "הסתרת תמונות" : `תמונות (${co.photos.length})`}</button>` : ""}
       ${dep && co && !s.depositStatus || s.depositStatus === "review" ? `<button class="primary" data-depret="${esc(s.id)}">החזרת פיקדון</button><button class="danger" data-depkeep="${esc(s.id)}">עיכוב פיקדון</button>` : ""}
-      ${s.status !== "cancelled" && s.series ? `<button class="danger" data-cancel-series="${esc(s.detailId)}">ביטול הסדרה</button>` : ""}</div></div>`;
+      ${s.status !== "cancelled" && s.series ? `<button class="danger" data-cancel-series="${esc(s.detailId)}">ביטול הסדרה</button>` : ""}
+      <button class="danger" data-del="${esc(s.id)}">מחיקה</button></div></div>${editing ? editForm(s, det) : ""}`;
+}
+function editForm(s, det) {
+  const n = S.slots.filter(y => y.detailId && y.detailId === s.detailId).length, f = `ed-${s.id}`;
+  return `<form class="panel edit-form" data-edit-form="${esc(s.id)}" style="gap:12px;margin:4px 0 14px">
+    <h3>עריכת הזמנה</h3>
+    <div class="form2">
+      <label for="${f}-price">מחיר למועד הזה (₪)<input id="${f}-price" name="price" type="number" min="0" inputmode="numeric" value="${esc(s.price ?? 0)}"></label>
+      <label for="${f}-date">תאריך<input id="${f}-date" name="date" type="date" value="${esc(s.date)}"></label>
+      <label for="${f}-start">משעה<input id="${f}-start" name="start" type="time" value="${esc(s.start)}"></label>
+      <label for="${f}-end">עד שעה<input id="${f}-end" name="end" type="time" value="${esc(s.end)}"></label>
+      <label for="${f}-name">שם השוכר/ת<input id="${f}-name" name="name" value="${esc(det.name || "")}" autocomplete="off"></label>
+      <label for="${f}-phone">טלפון<input id="${f}-phone" name="phone" type="tel" dir="ltr" style="text-align:right" value="${esc(det.phone || "")}"></label>
+      <label for="${f}-email">אימייל<input id="${f}-email" name="email" type="email" dir="ltr" style="text-align:right" value="${esc(det.email || "")}"></label>
+      <label for="${f}-people">משתתפים<input id="${f}-people" name="people" type="number" min="0" inputmode="numeric" value="${esc(det.people ?? "")}"></label>
+      <label for="${f}-purpose">מטרה<input id="${f}-purpose" name="purpose" value="${esc(det.purpose || "")}"></label>
+      <label for="${f}-res">תעריף<select id="${f}-res" name="residency"><option value="local" ${det.residency !== "outside" ? "selected" : ""}>תושב/ת קלחים</option><option value="outside" ${det.residency === "outside" ? "selected" : ""}>תושב/ת חוץ</option></select></label>
+    </div>
+    ${n > 1 ? `<p class="small muted">פרטי השוכר משותפים לכל ${n} המועדים בהזמנה. המחיר והמועד משתנים רק למועד הזה.</p>` : ""}
+    <p class="small muted">שינוי כאן לא שולח מייל לשוכר.</p>
+    <div class="row" style="gap:8px">
+      <button type="submit" class="primary">שמירת השינויים</button>
+      <button type="button" data-edit-close>ביטול העריכה</button>
+      ${n > 1 ? `<button type="button" class="danger" data-del-all="${esc(s.id)}">מחיקת כל ההזמנה (${n} מועדים)</button>` : ""}
+    </div>
+  </form>`;
 }
 function bindRows(body) {
   const up = async (id, data, msg, x) => { x.disabled = true; try { await api.updateSlot(id, data); toast(msg); await refreshSlots(); rerender(); } catch (e) { toast("העדכון לא נשמר"); x.disabled = false; } };
@@ -689,6 +717,27 @@ function bindRows(body) {
     if (x.dataset.armed !== "1") { x.dataset.armed = "1"; x.textContent = `לאשר? (${x.dataset.refund})`; return; }
     const s = S.slots.find(y => y.id === x.dataset.cancel); if (s) up(s.id, cancelData(s, "admin"), "ההזמנה בוטלה והחדר שוחרר", x);
   });
+  body.querySelectorAll("[data-edit]").forEach(x => x.onclick = () => { const same = S.editSlot === x.dataset.edit && S.editKey === Number(x.dataset.key); S.editSlot = same ? null : x.dataset.edit; S.editKey = Number(x.dataset.key); rerender(); });
+  body.querySelectorAll("[data-edit-close]").forEach(x => x.onclick = () => { S.editSlot = null; rerender(); });
+  const EDIT_ERR = { clash: "המועד החדש מתנגש בהזמנה אחרת בחדר הזה", bad_time: "שעת הסיום צריכה להיות אחרי שעת ההתחלה", missing_details: "חסר שם או מספר טלפון תקין", missing_email: "כתובת האימייל לא תקינה" };
+  body.querySelectorAll("[data-edit-form]").forEach(form => form.onsubmit = async ev => {
+    ev.preventDefault();
+    const v = Object.fromEntries(new FormData(form)), btn = form.querySelector("[type=submit]");
+    if (!v.date || !v.start || !v.end) { toast("יש למלא תאריך ושעות"); return; }
+    btn.disabled = true;
+    try {
+      await api.adminUpdateSlot({ slot_id: form.dataset.editForm, ...v, price: Number(v.price) || 0 });
+      S.editSlot = null; toast("השינויים נשמרו"); await refreshSlots(); rerender();
+    } catch (e) { toast(EDIT_ERR[e.code] || "השינויים לא נשמרו"); btn.disabled = false; }
+  });
+  const del = async (x, id, whole) => {
+    if (x.dataset.armed !== "1") { x.dataset.armed = "1"; x.textContent = whole ? "למחוק את כל ההזמנה לצמיתות?" : "למחוק לצמיתות?"; return; }
+    x.disabled = true;
+    try { await api.adminDeleteSlot(id, whole); S.editSlot = null; toast(whole ? "ההזמנה נמחקה" : "המועד נמחק"); await refreshSlots(); rerender(); }
+    catch (e) { toast("המחיקה לא הצליחה"); x.disabled = false; }
+  };
+  body.querySelectorAll("[data-del]").forEach(x => x.onclick = () => del(x, x.dataset.del, false));
+  body.querySelectorAll("[data-del-all]").forEach(x => x.onclick = () => del(x, x.dataset.delAll, true));
   body.querySelectorAll("[data-cancel-series]").forEach(x => x.onclick = async () => {
     const now = Date.now(), list = S.slots.filter(y => y.detailId === x.dataset.cancelSeries && y.status !== "cancelled" && slotStartMs(y) > now);
     if (x.dataset.armed !== "1") { x.dataset.armed = "1"; x.textContent = `לבטל ${list.length} מועדים?`; return; }
