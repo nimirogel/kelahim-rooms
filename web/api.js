@@ -34,8 +34,9 @@
       async signOut() { await sb.auth.signOut(); },
       async loadSettings() { const { data, error } = await sb.from("settings").select("data").eq("id", 1).single(); if (error) fail(error); return data.data || {}; },
       async saveSettings(d) { const { error } = await sb.from("settings").update({ data: d, updated_at: new Date().toISOString() }).eq("id", 1); if (error) fail(error); },
-      async listSlots(from, admin) {
-        const q = admin ? sb.from("slots").select("*, bookings(*)").gte("date", from).order("starts_at") : sb.from("public_slots").select("*").gte("date", from);
+      async listSlots(from, admin, to) {
+        let q = admin ? sb.from("slots").select("*, bookings(*)").gte("date", from).order("starts_at") : sb.from("public_slots").select("*").gte("date", from);
+        if (to) q = q.lte("date", to);
         const { data, error } = await q; if (error) fail(error); return data.map(toSlot);
       },
       async getBookings(tokens) { if (!tokens.length) return []; const { data, error } = await sb.rpc("get_bookings", { tokens }); if (error) fail(error); return (data || []).map(fromBooking); },
@@ -94,7 +95,7 @@
     async signOut() { await load(); st.admin = false; save(); },
     async loadSettings() { await load(); return JSON.parse(JSON.stringify(st.settings)); },
     async saveSettings(d) { await load(); st.settings = JSON.parse(JSON.stringify(d)); save(); },
-    async listSlots(from, admin) { await load(); return st.slots.filter(s => s.date >= from && (admin || s.status !== "cancelled")).map(s => toSlot(admin ? withBooking(s) : { id: s.id, room_id: s.room_id, date: s.date, start_time: s.start_time, end_time: s.end_time, end_date: s.end_date })); },
+    async listSlots(from, admin, to) { await load(); return st.slots.filter(s => s.date >= from && (!to || s.date <= to) && (admin || s.status !== "cancelled")).map(s => toSlot(admin ? withBooking(s) : { id: s.id, room_id: s.room_id, date: s.date, start_time: s.start_time, end_time: s.end_time, end_date: s.end_date })); },
     async getBookings(tokens) { await load(); return st.bookings.filter(b => tokens.includes(b.token)).map(b => fromBooking({ ...b, slots: st.slots.filter(s => s.booking_id === b.id).map(s => ({ ...s, start: s.start_time, end: s.end_time })) })); },
     async createBooking(p) {
       await load();

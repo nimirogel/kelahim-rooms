@@ -172,7 +172,7 @@
    "address": "",
    "closedDates": [],
    "id": "sport",
-   "name": "מתקני ספורט",
+   "name": "מתחמי חוץ",
    "rooms": [
     {
      "bufferMin": 0,
@@ -215,6 +215,18 @@
      "payLink": "https://private.invoice4u.co.il/newsite/he/clearing/public/i4u-clearing?ProductGuid=7919fb30-1284-4f35-8924-85274efcb072",
      "rules": "",
      "photoId": "room-court.svg"
+    },
+    {
+     "id": "lawn",
+     "name": "דשא המועדון",
+     "capacity": "",
+     "maxAdvanceDays": 60,
+     "bufferMin": 0,
+     "description": "דשא ליד המועדון, לאירועים בחוץ.",
+     "payLink": "",
+     "rules": "",
+     "options": [],
+     "photoId": "room-lawn.svg"
     }
    ],
    "schedule": {
@@ -255,6 +267,88 @@
      "to": "22:00"
     }
    }
+  },
+  {
+   "id": "shelters",
+   "name": "מקלטים",
+   "address": "",
+   "closedDates": [],
+   "schedule": {
+    "0": {
+     "from": "08:00",
+     "open": true,
+     "to": "23:00"
+    },
+    "1": {
+     "from": "08:00",
+     "open": true,
+     "to": "23:00"
+    },
+    "2": {
+     "from": "08:00",
+     "open": true,
+     "to": "23:00"
+    },
+    "3": {
+     "from": "08:00",
+     "open": true,
+     "to": "23:00"
+    },
+    "4": {
+     "from": "08:00",
+     "open": true,
+     "to": "23:00"
+    },
+    "5": {
+     "from": "08:00",
+     "open": true,
+     "to": "15:00"
+    },
+    "6": {
+     "auto": true,
+     "from": "17:00",
+     "open": true,
+     "to": "23:00"
+    }
+   },
+   "rooms": [
+    {
+     "id": "aquarium",
+     "name": "האקווריום",
+     "capacity": "",
+     "maxAdvanceDays": 60,
+     "bufferMin": 0,
+     "description": "מקלט קהילתי.",
+     "payLink": "",
+     "rules": "",
+     "options": [],
+     "photoId": "room-shelter.svg"
+    },
+    {
+     "id": "colombia",
+     "name": "קולומביה",
+     "capacity": "",
+     "maxAdvanceDays": 60,
+     "bufferMin": 0,
+     "description": "מקלט קהילתי.",
+     "payLink": "",
+     "rules": "",
+     "options": [],
+     "photoId": "room-shelter.svg"
+    },
+    {
+     "id": "yael",
+     "name": "יעל מלכה",
+     "capacity": "",
+     "maxAdvanceDays": 60,
+     "bufferMin": 0,
+     "description": "מקלט קהילתי.",
+     "payLink": "",
+     "rules": "",
+     "options": [],
+     "photoId": "room-shelter.svg"
+    }
+   ]
   },
   {
    "address": "",

@@ -123,6 +123,7 @@ function blockStarts(b, room, date, h) {
 const fixedOk = (room, date, o) => toMin(o.start) > nowCut(date) && fits(room, date, toMin(o.start), toMin(o.end));
 function dayStatus(b, room, date) {
   if (!daySchedule(b, date)) return "closed";
+  if (!(room.options || []).length) return busyFor(room.id, date).length ? "part" : "free";
   const any = (room.options || []).some(o => o.kind === "fixed" ? fixedOk(room, date, o) : o.kind === "block" ? blockStarts(b, room, date, Number(o.hours || 24)).length : hourlyStarts(b, room, date, Number(o.minHours || 1)).length);
   if (!any) return "full";
   return busyFor(room.id, date).length ? "part" : "free";
@@ -229,7 +230,7 @@ function roomCard(r) {
     <div class="body">
       <h3>${esc(r.name)}</h3>
       ${r.description ? `<p class="small muted">${esc(r.description)}</p>` : ""}
-      <div class="foot">${r.capacity ? `<span class="tag">${ICON.people}עד ${esc(r.capacity)} איש</span>` : "<span></span>"}${minPrice(r) ? `<span class="from">החל מ־<b>${money(P(minPrice(r)))}</b>${(r.options || []).every(o => o.kind === "hourly" || !o.kind) ? "/שעה" : ""}</span>` : ""}</div>
+      <div class="foot">${r.capacity ? `<span class="tag">${ICON.people}עד ${esc(r.capacity)} איש</span>` : "<span></span>"}${!(r.options || []).length ? `<span class="from">בתיאום מול המזכירות</span>` : ""}${minPrice(r) ? `<span class="from">החל מ־<b>${money(P(minPrice(r)))}</b>${(r.options || []).every(o => o.kind === "hourly" || !o.kind) ? "/שעה" : ""}</span>` : ""}</div>
     </div>
   </button>`;
 }
@@ -331,9 +332,16 @@ function dayPanelHtml(b, r) {
   return `<div class="panel">
     <div><h3>${heDate(S.date)}</h3><p class="small muted num">${sch.motzash ? "מוצאי שבת · " : ""}פתוח ${tr(toHM(sch.from), toHM(sch.to))}${Number(r.bufferMin) ? ` · ${esc(r.bufferMin)} דק׳ הפרדה בין הזמנות` : ""}</p></div>
     ${tl}
-    <span class="lbl">בחרו אפשרות</span>
-    <div class="stack" style="gap:10px">${opts}</div>
+    ${(r.options || []).length ? `<span class="lbl">בחרו אפשרות</span>
+    <div class="stack" style="gap:10px">${opts}</div>` : contactBox(r, b)}
   </div>`;
+}
+// Rooms with no online price yet: show availability, book by phone/WhatsApp
+function contactBox(r, b) {
+  const ph = S.config.managerPhone, wa = waLink(ph, `שלום, אשמח להזמין את ${r.name} (${b.name}) ב${heDate(S.date)}. מה המחיר והשעות האפשריות?`);
+  return `<div class="notice ok"><b>ההזמנה ב${esc(r.name)} בתיאום מול המזכירות.</b><br>אפשר לראות כאן מתי פנוי, ולתאם בטלפון או בוואטסאפ.</div>
+    ${wa ? `<a class="btn primary big-btn" href="${esc(wa)}" target="_blank" rel="noopener">לתיאום בוואטסאפ</a>` : ""}
+    ${ph ? `<p class="small muted">${esc(S.config.managerName || "מזכירות")} · <span class="num" dir="ltr">${esc(ph)}</span></p>` : ""}`;
 }
 
 function step2() {
@@ -347,8 +355,7 @@ function step2() {
       <div class="row" style="gap:18px">${r.capacity ? `<span class="tag">${ICON.people}עד ${esc(r.capacity)} איש</span>` : ""}${b.address ? `<span class="tag">${ICON.pin}${esc(b.address)}</span>` : ""}</div>
       <div class="row small">${(r.options || []).map(o => `<span class="pill" style="background:var(--soft);color:var(--fg)">${esc(o.name)} · ${money(P(o.price))}${o.kind === "fixed" || o.kind === "block" ? "" : "/שעה"}</span>`).join("")}</div>
       ${Number(r.bufferMin) >= 60 ? `<p class="small muted">לא ניתן להשכיר ${Number(r.bufferMin) === 120 ? "שעתיים" : hrs(Number(r.bufferMin) / 60)} לפני ואחרי כל השכרה.</p>` : ""}
-      ${resToggle()}${rateNote()}
-      <p class="small muted">${esc(policyText())}</p>
+      ${(r.options || []).length ? `${resToggle()}${rateNote()}<p class="small muted">${esc(policyText())}</p>` : `<p class="small muted">ההזמנה בתיאום מול המזכירות.</p>`}
       ${depositOf(r) ? `<p class="small"><b>פיקדון ${money(depositOf(r))}</b> · מוחזר אחרי ההזדכות: בסיום מצלמים את המבנה נקי ומעלים את התמונות.</p>` : ""}
     </div>
   </section>
@@ -626,13 +633,13 @@ function renderAdmin(app) {
   if (!S.isAdmin) { S.view = "login"; return render(); }
   if (!S.configLoaded) { app.innerHTML = `<div class="empty">טוען…</div>`; return; }
   if (!S.draft) S.draft = JSON.parse(JSON.stringify(S.config || blankConfig()));
-  const tabs = [["calendar", "לוח"], ["bookings", "הזמנות"], ["rooms", "חדרים ומחירים"], ["general", "כללי ונהלים"]];
-  app.innerHTML = `<div class="stack" style="gap:6px;margin-block:8px 18px"><div class="row" style="justify-content:space-between"><span class="eyebrow">ניהול</span><button class="link small" id="logout">יציאה</button></div><h1>${{ calendar: "לוח השכרות", bookings: "הזמנות ותזכורות" }[S.adminTab] || "הגדרות"}</h1></div>
+  const tabs = [["calendar", "לוח"], ["bookings", "הזמנות"], ["report", "דוח תשלומים"], ["rooms", "חדרים ומחירים"], ["general", "כללי ונהלים"]];
+  app.innerHTML = `<div class="stack" style="gap:6px;margin-block:8px 18px"><div class="row" style="justify-content:space-between"><span class="eyebrow">ניהול</span><button class="link small" id="logout">יציאה</button></div><h1>${{ calendar: "לוח השכרות", bookings: "הזמנות ותזכורות", report: "הזמנות מול תשלום בפועל" }[S.adminTab] || "הגדרות"}</h1></div>
     <div class="seg atabs" role="tablist">${tabs.map(([k, t]) => `<button role="tab" aria-selected="${S.adminTab === k}" data-tab="${k}">${t}</button>`).join("")}</div><div id="adminBody"></div>`;
   app.querySelectorAll("[data-tab]").forEach(x => x.onclick = () => { S.adminTab = x.dataset.tab; render(); });
   $("#logout").onclick = async () => { await api.signOut(); S.isAdmin = false; await refreshSlots(); go("public"); };
   const body = $("#adminBody");
-  if (S.adminTab === "calendar") adminCalendar(body); else if (S.adminTab === "bookings") adminBookings(body); else if (S.adminTab === "rooms") adminRooms(body); else adminGeneral(body);
+  if (S.adminTab === "report") adminReport(body); else if (S.adminTab === "calendar") adminCalendar(body); else if (S.adminTab === "bookings") adminBookings(body); else if (S.adminTab === "rooms") adminRooms(body); else adminGeneral(body);
   if (S.adminTab === "rooms" || S.adminTab === "general") renderSaveBar();
 }
 
@@ -692,9 +699,10 @@ function bindRows(body) {
 
 function adminCalendar(body, pub) {
   const today = ymd(new Date());
-  S.acalYM ||= today.slice(0, 7); S.acalDay ||= today; S.acalB ||= "all";
+  S.acalYM ||= today.slice(0, 7); S.acalDay ||= today; S.acalB ||= "all"; S.acalR ||= "all";
+  if (S.acalB === "all" || !(bById(S.acalB)?.rooms || []).some(r => r.id === S.acalR)) S.acalR = "all";
   const [y, m] = S.acalYM.split("-").map(Number), first = new Date(y, m - 1, 1), days = new Date(y, m, 0).getDate();
-  const roomIds = S.acalB === "all" ? null : new Set((bById(S.acalB)?.rooms || []).map(r => r.id));
+  const roomIds = S.acalR !== "all" ? new Set([S.acalR]) : S.acalB === "all" ? null : new Set((bById(S.acalB)?.rooms || []).map(r => r.id));
   const live = S.slots.filter(s => s.status !== "cancelled" && (!roomIds || roomIds.has(s.roomId)));
   const onDay = d => { const D0 = dayNum(d) * 1440, D1 = D0 + 1440; return live.filter(s => { const [A, B] = slotAbs(s); return A < D1 && B > D0; }).sort((a, b) => slotAbs(a)[0] - slotAbs(b)[0]); };
   let cells = DOWS.map(d => `<div class="wd" aria-hidden="true">${d}</div>`).join("");
@@ -713,6 +721,7 @@ function adminCalendar(body, pub) {
   const income = monthList.reduce((a, s) => a + Number(s.price || 0), 0);
   body.innerHTML = `
     <div class="chips jump" style="margin-bottom:14px">${[["all", "הכל"], ...(S.config.buildings || []).map(b => [b.id, b.name])].map(([k, t]) => `<button class="chip" data-acb="${esc(k)}" aria-pressed="${S.acalB === k}">${esc(t)}</button>`).join("")}</div>
+    ${S.acalB !== "all" && (bById(S.acalB)?.rooms || []).length > 1 ? `<div class="chips jump room-chips" style="margin:-6px 0 14px" aria-label="סינון לפי חדר">${[["all", "כל החדרים ב" + (bById(S.acalB)?.name || "")], ...bById(S.acalB).rooms.map(r => [r.id, r.name])].map(([k, t]) => `<button class="chip" data-acr="${esc(k)}" aria-pressed="${S.acalR === k}">${esc(t)}</button>`).join("")}</div>` : ""}
     <div class="panel" style="margin-bottom:22px">
       <div class="cal-head"><button data-amon="-1" aria-label="החודש הקודם">›</button><div style="text-align:center"><h3>${MONTHS[m - 1]} ${y}</h3><span class="small muted">${monthList.length} השכרות${pub ? "" : ` · ${money(income)}`}</span></div><button data-amon="1" aria-label="החודש הבא">‹</button></div>
       <div class="acal" role="group" aria-label="בחירת יום">${cells}</div>
@@ -721,10 +730,52 @@ function adminCalendar(body, pub) {
     <section class="section"><h2>${heDateY(S.acalDay)}</h2>
       ${dayList.length ? `<div>${dayList.map(pub ? pubRow : bookingRow).join("")}</div>` : `<p class="muted">אין השכרות ביום זה. כל החדרים פנויים בשעות הפעילות.</p>`}</section>`;
   body.querySelectorAll("[data-goroom]").forEach(x => x.onclick = () => { const target = S.acalDay; go("public"); S.roomId = x.dataset.goroom; S.step = 2; S.sel = null; S.pick = null; S.date = target >= ymd(new Date()) ? target : null; S.calYM = (S.date || ymd(new Date())).slice(0, 7); render(); window.scrollTo({ top: 0 }); });
-  body.querySelectorAll("[data-acb]").forEach(x => x.onclick = () => { S.acalB = x.dataset.acb; rerender(); });
+  body.querySelectorAll("[data-acb]").forEach(x => x.onclick = () => { S.acalB = x.dataset.acb; S.acalR = "all"; rerender(); });
+  body.querySelectorAll("[data-acr]").forEach(x => x.onclick = () => { S.acalR = x.dataset.acr; rerender(); });
   body.querySelectorAll("[data-amon]").forEach(x => x.onclick = () => { const d = new Date(y, m - 1 + Number(x.dataset.amon), 1); S.acalYM = ymd(d).slice(0, 7); rerender(); });
   body.querySelectorAll("[data-aday]").forEach(x => x.onclick = () => { S.acalDay = x.dataset.aday; rerender(); });
   if (!pub) bindRows(body);
+}
+
+// Bookings vs actual payments, per month, with Excel (CSV) export
+function adminReport(body) {
+  const now = new Date(); S.repYM ||= ymd(now).slice(0, 7);
+  const [y, m] = S.repYM.split("-").map(Number), from = S.repYM + "-01", to = ymd(new Date(y, m, 0));
+  if (S.repRows?.ym !== S.repYM) {
+    body.innerHTML = `<div class="empty">טוען את נתוני ${MONTHS[m - 1]} ${y}…</div>`;
+    api.listSlots(from, true, to).then(rows => { S.repRows = { ym: S.repYM, rows }; if (S.view === "admin" && S.adminTab === "report") rerender(); })
+      .catch(() => { body.innerHTML = `<div class="notice bad">לא ניתן לטעון את הדוח. נסו שוב.</div>`; });
+    return;
+  }
+  const rows = S.repRows.rows.filter(s => s.date >= from && s.date <= to).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+  const live = rows.filter(s => s.status !== "cancelled"), paid = live.filter(s => s.status === "paid"), open = live.filter(s => s.status === "pending");
+  const cancelledPaid = rows.filter(s => s.status === "cancelled" && s.paidAt);
+  const toRefund = cancelledPaid.filter(s => s.refund === "full" && !s.refundedAt), kept = cancelledPaid.filter(s => s.refund === "none");
+  const sum = a => a.reduce((t, s) => t + Number(s.price || 0), 0);
+  const roomName = id => rById(id)?.r.name || id;
+  const byRoom = {}; live.forEach(s => { const k = roomName(s.roomId); byRoom[k] ||= { n: 0, due: 0, paid: 0 }; byRoom[k].n++; byRoom[k].due += Number(s.price || 0); if (s.status === "paid") byRoom[k].paid += Number(s.price || 0); });
+  const statusText = s => s.status === "cancelled" ? (s.paidAt ? (s.refund === "full" ? (s.refundedAt ? "בוטל · הוחזר" : "בוטל · להחזיר") : "בוטל · ללא החזר") : "בוטל") : STATUS[s.status];
+  body.innerHTML = `
+    <div class="cal-head" style="margin-bottom:16px"><button data-rmon="-1" aria-label="החודש הקודם">›</button><h2>${MONTHS[m - 1]} ${y}</h2><button data-rmon="1" aria-label="החודש הבא">‹</button></div>
+    <div class="stats">
+      <div class="stat"><span class="small muted">הוזמן (${live.length})</span><b>${money(sum(live))}</b></div>
+      <div class="stat"><span class="small muted">שולם בפועל (${paid.length})</span><b style="color:var(--free)">${money(sum(paid))}</b></div>
+      <div class="stat"><span class="small muted">פתוח לתשלום (${open.length})</span><b style="color:var(--part)">${money(sum(open))}</b></div>
+    </div>
+    ${toRefund.length || kept.length ? `<p class="small">ביטולים ששולמו: ${toRefund.length ? `להחזיר ${money(sum(toRefund))} (${toRefund.length})` : ""}${toRefund.length && kept.length ? " · " : ""}${kept.length ? `נשאר בקופה לפי תנאי הביטול ${money(sum(kept))} (${kept.length})` : ""}</p>` : ""}
+    <div class="row" style="margin:10px 0 18px"><button class="primary" id="csvBtn">ייצוא לאקסל (CSV)</button></div>
+    ${Object.keys(byRoom).length ? `<section class="section"><h3>לפי חדר</h3><div class="tbl-wrap"><table class="tbl"><thead><tr><th>חדר</th><th>הזמנות</th><th>הוזמן</th><th>שולם</th><th>פתוח</th></tr></thead><tbody>${Object.entries(byRoom).sort((a, b) => b[1].due - a[1].due).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${v.n}</td><td class="num">${money(v.due)}</td><td class="num">${money(v.paid)}</td><td class="num">${money(v.due - v.paid)}</td></tr>`).join("")}</tbody></table></div></section>` : ""}
+    <section class="section"><h3>כל ההזמנות בחודש</h3>
+      ${rows.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>תאריך</th><th>שעות</th><th>חדר</th><th>שוכר/ת</th><th>תעריף</th><th>סכום</th><th>סטטוס</th></tr></thead><tbody>${rows.map(s => `<tr class="${s.status}"><td class="num">${esc(s.date.split("-").reverse().join("."))}</td><td class="num">${tr(esc(s.start), esc(s.end))}</td><td>${esc(roomName(s.roomId))}</td><td>${esc(s.booking?.name || "")}</td><td>${s.booking?.residency === "outside" ? "חוץ" : "תושב"}</td><td class="num">${money(s.price)}</td><td><span class="pill ${s.status}">${esc(statusText(s))}</span></td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">אין הזמנות בחודש הזה.</div>`}
+    </section>`;
+  body.querySelectorAll("[data-rmon]").forEach(x => x.onclick = () => { const d = new Date(y, m - 1 + Number(x.dataset.rmon), 1); S.repYM = ymd(d).slice(0, 7); rerender(); });
+  $("#csvBtn").onclick = () => {
+    const q = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+    const head = ["תאריך", "התחלה", "סיום", "חדר", "שוכר/ת", "טלפון", "אימייל", "תעריף", "אפשרות", "סכום", "סטטוס", "תאריך תשלום", "החזר"];
+    const lines = rows.map(s => [s.date, s.start, s.end, roomName(s.roomId), s.booking?.name, s.booking?.phone, s.booking?.email, s.booking?.residency === "outside" ? "חוץ" : "תושב", s.optionName, s.price, statusText(s), s.paidAt ? String(s.paidAt).slice(0, 10) : "", s.refund === "full" ? (s.refundedAt ? "הוחזר" : "להחזיר") : s.refund === "none" ? "ללא" : ""].map(q).join(","));
+    const blob = new Blob(["\ufeff" + [head.map(q).join(","), ...lines].join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `kelahim-payments-${S.repYM}.csv`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  };
 }
 
 function adminBookings(body) {

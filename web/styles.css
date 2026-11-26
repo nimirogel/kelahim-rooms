@@ -237,3 +237,9 @@ details.box[open]>summary{margin-bottom:14px}
 .cal-txt b{font-family:var(--f-display);font-size:1.15em;color:var(--accent)}
 .cal-txt span{font-size:.9em;color:var(--muted)}
 .cal-arrow{font-size:1.4em;color:var(--accent);font-weight:700}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+.tbl{width:100%;border-collapse:collapse;font-size:.9em;min-width:560px}
+.tbl th,.tbl td{padding:8px 10px;text-align:start;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl th{background:var(--soft);font-weight:700;color:var(--muted);font-size:.9em}
+.tbl tr.cancelled td{color:var(--muted)}
+.tbl tr:last-child td{border-bottom:0}
