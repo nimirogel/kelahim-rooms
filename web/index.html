@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>חדרים להשכרה · קלחים</title>
+<meta name="description" content="הזמנת חדרים ומתקנים במבני הציבור של מושב קלחים: זמינות, הזמנה ותשלום.">
+<meta name="theme-color" content="#3f7d1c">
+<link rel="icon" href="logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;600;700&family=Assistant:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <button class="logo" id="homeBtn" aria-label="לעמוד הבית">
+      <span id="logoSlot"></span><svg id="logoIcon" width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="10" fill="var(--accent)"/><path d="M9 25V15l8-6 8 6v10h-5v-6h-6v6z" fill="var(--accent-fg)"/></svg>
+      <span id="siteName">השכרת חדרים</span>
+    </button>
+    <div class="tools">
+      <button id="bigText" class="quiet" aria-pressed="false" aria-label="הגדלת טקסט">א+</button>
+      <button id="toCal" class="quiet">לוח השכרות</button>
+      <button id="toAdmin" class="quiet" hidden>ניהול</button>
+    </div>
+  </header>
+  <div id="demoBanner" class="demo-banner" hidden>מצב הדגמה: נתוני דוגמה שנשמרים רק בדפדפן הזה. <button class="link" id="demoReset">איפוס</button></div>
+  <main id="app"><div class="empty">טוען את החדרים והזמינות…</div></main>
+  <footer class="foot-note"><button class="link" id="adminLogin">כניסת מנהלים</button></footer>
+</div>
+<div id="bar" class="bar" hidden></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
