@@ -235,7 +235,8 @@ function roomCard(r) {
 }
 function step1(bs) {
   const note = `<div class="stack" style="gap:6px;margin-top:6px"><span class="lbl">מחירים עבור</span>${resToggle()}${rateNote()}</div>`;
-  return `<section class="hero"><span class="eyebrow">מבני הציבור של המושב</span><h1>איזה חדר תרצו להזמין?</h1><p>בוחרים חדר, רואים בלוח מתי הוא פנוי, ומזמינים בכמה לחיצות.</p>${note}${S.config.example ? `<span class="demo-note">מוצגים נתוני דוגמה</span>` : ""}</section>
+  return `<section class="hero"><span class="eyebrow">מבני הציבור של המושב</span><h1>איזה חדר תרצו להזמין?</h1><p>בוחרים חדר, רואים בלוח מתי הוא פנוי, ומזמינים בכמה לחיצות.</p>
+    <button class="cal-cta" data-gocal><span class="cal-ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M7.5 13.5h.01M12 13.5h.01M16.5 13.5h.01M7.5 17h.01M12 17h.01" stroke-width="3"/></svg></span><span class="cal-txt"><b>לוח השכרות</b><span>מה תפוס ומתי, בכל החדרים</span></span><span class="cal-arrow" aria-hidden="true">←</span></button>${note}${S.config.example ? `<span class="demo-note">מוצגים נתוני דוגמה</span>` : ""}</section>
   ${bs.length > 1 ? `<nav class="jump" aria-label="קפיצה לאזור">${bs.map(x => `<button class="chip" data-jump="${esc(x.id)}">${esc(x.name)}</button>`).join("")}</nav>` : ""}
   ${bs.map(b => `<section class="section" id="b-${esc(b.id)}">
     <div class="stack" style="gap:2px"><h2>${esc(b.name)}</h2>${b.address ? `<p class="tag">${ICON.pin}${esc(b.address)}</p>` : ""}</div>
@@ -583,6 +584,7 @@ function bindPublic(app) {
     catch (e) { toast("הביטול לא הצליח. פנו למנהל המבנים."); btn.disabled = false; }
   });
   app.querySelectorAll("[data-res]").forEach(x => x.onclick = () => { S.resident = x.dataset.res; try { localStorage.setItem("resident", S.resident); } catch (e) {} rerender(); });
+  app.querySelectorAll("[data-gocal]").forEach(x => x.onclick = () => go("calendar"));
   app.querySelectorAll("[data-gocheckout]").forEach(x => x.onclick = () => { const [t, id] = x.dataset.gocheckout.split("/"); S.coToken = t; S.coId = id; S.coData = null; go("checkout"); });
   app.querySelectorAll("[data-rep]").forEach(x => x.onclick = () => { S.rep.mode = x.dataset.rep; rerender(); });
   app.querySelector("#repUntil")?.addEventListener("change", e => { if (e.target.value) { S.rep.until = e.target.value; rerender(); } });
