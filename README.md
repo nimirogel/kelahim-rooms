@@ -90,6 +90,18 @@ netlify.toml         הגדרות פרסום
 
 תזכורת שנכשלה מסומנת אצל המנהל, וכפתור התזכורת הידנית חוזר.
 
+## התראות מייל על הזמנה חדשה (Gmail)
+
+`supabase/email.sql` מוסיף התראה על כל הזמנה חדשה: מייל למנהל (לכתובת שבהגדרות) ומייל אישור לשוכר (אם מילא אימייל).
+המיילים יוצאים מה-Gmail שלכם דרך Google Apps Script (`apps-script/Code.gs`):
+1. [script.google.com](https://script.google.com) ← **New project** ← מדביקים את `Code.gs`.
+2. **Deploy** ← **New deployment** ← **Web app** ← Execute as: **Me**, Who has access: **Anyone** ← מאשרים הרשאה ל-Gmail.
+3. מעתיקים את כתובת ה-Web app, וב-Supabase ← SQL Editor:
+   ```sql
+   select vault.create_secret('<WEB APP URL>', 'mail_webhook_url');
+   ```
+המסד שולח לסקריפט רק את הקישור האישי של ההזמנה, והסקריפט מושך את הפרטים מהמסד פעם אחת, ב־15 הדקות הראשונות.
+
 ## עדכון האתר בהמשך
 
 - **מחירים, חדרים, שעות ונהלים:** מתוך מסך הניהול באתר. לא צריך לגעת בקוד.
@@ -101,6 +113,7 @@ netlify.toml         הגדרות פרסום
 npm install
 node tests/db.test.mjs
 node tests/whatsapp.test.mjs
+node tests/email.test.mjs
 ```
 
 ## מה עוד לא נבנה (השלבים הבאים)

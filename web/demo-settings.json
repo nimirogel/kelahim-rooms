@@ -24,7 +24,8 @@
       }
      ],
      "payLink": "https://private.invoice4u.co.il/newsite/he/clearing/public/i4u-clearing?ProductGuid=7919fb30-1284-4f35-8924-85274efcb072",
-     "rules": ""
+     "rules": "",
+     "photoId": "room-noar.svg"
     },
     {
      "bufferMin": 0,
@@ -44,7 +45,8 @@
       }
      ],
      "payLink": "https://private.invoice4u.co.il/newsite/he/clearing/public/i4u-clearing?ProductGuid=7919fb30-1284-4f35-8924-85274efcb072",
-     "rules": ""
+     "rules": "",
+     "photoId": "room-noar.svg"
     },
     {
      "bufferMin": 0,
@@ -64,7 +66,8 @@
       }
      ],
      "payLink": "https://private.invoice4u.co.il/newsite/he/clearing/public/i4u-clearing?ProductGuid=7919fb30-1284-4f35-8924-85274efcb072",
-     "rules": ""
+     "rules": "",
+     "photoId": "room-noar.svg"
     }
    ],
    "schedule": {
@@ -130,7 +133,8 @@
       }
      ],
      "payLink": "https://private.invoice4u.co.il/newsite/he/clearing/public/i4u-clearing?ProductGuid=7919fb30-1284-4f35-8924-85274efcb072",
-     "rules": ""
+     "rules": "",
+     "photoId": "room-library.svg"
     },
     {
      "bufferMin": 120,
@@ -158,7 +162,8 @@
       }
      ],
      "payLink": "https://private.invoice4u.co.il/newsite/he/clearing/public/i4u-clearing?ProductGuid=7919fb30-1284-4f35-8924-85274efcb072",
-     "rules": "• לא ניתן להשכיר שעתיים לפני ואחרי כל השכרה (זמן היערכות וניקיון)."
+     "rules": "• לא ניתן להשכיר שעתיים לפני ואחרי כל השכרה (זמן היערכות וניקיון).",
+     "photoId": "room-beitam.svg"
     },
     {
      "bufferMin": 120,
@@ -186,7 +191,8 @@
       }
      ],
      "payLink": "https://private.invoice4u.co.il/newsite/he/clearing/public/i4u-clearing?ProductGuid=7919fb30-1284-4f35-8924-85274efcb072",
-     "rules": "• לא ניתן להשכיר שעתיים לפני ואחרי כל השכרה (זמן היערכות וניקיון)."
+     "rules": "• לא ניתן להשכיר שעתיים לפני ואחרי כל השכרה (זמן היערכות וניקיון).",
+     "photoId": "room-zahav.svg"
     },
     {
      "bufferMin": 0,
@@ -207,7 +213,8 @@
       }
      ],
      "payLink": "https://private.invoice4u.co.il/newsite/he/clearing/public/i4u-clearing?ProductGuid=7919fb30-1284-4f35-8924-85274efcb072",
-     "rules": ""
+     "rules": "",
+     "photoId": "room-clinic.svg"
     },
     {
      "bufferMin": 0,
@@ -227,7 +234,8 @@
       }
      ],
      "payLink": "https://private.invoice4u.co.il/newsite/he/clearing/public/i4u-clearing?ProductGuid=7919fb30-1284-4f35-8924-85274efcb072",
-     "rules": ""
+     "rules": "",
+     "photoId": "room-hugim.svg"
     }
    ],
    "schedule": {
@@ -293,7 +301,8 @@
       }
      ],
      "payLink": "https://private.invoice4u.co.il/newsite/he/clearing/public/i4u-clearing?ProductGuid=7919fb30-1284-4f35-8924-85274efcb072",
-     "rules": ""
+     "rules": "",
+     "photoId": "room-soccer.svg"
     },
     {
      "bufferMin": 0,
@@ -313,7 +322,8 @@
       }
      ],
      "payLink": "https://private.invoice4u.co.il/newsite/he/clearing/public/i4u-clearing?ProductGuid=7919fb30-1284-4f35-8924-85274efcb072",
-     "rules": ""
+     "rules": "",
+     "photoId": "room-court.svg"
     }
    ],
    "schedule": {
@@ -359,12 +369,13 @@
  "example": false,
  "generalRules": "• יש להשאיר את המבנה נקי ומסודר כפי שהתקבל.\n• אין לעשן בתוך המבנים.\n• יש לסיים את הפעילות בזמן ולכבות אורות ומזגנים ביציאה.\n• שמירה על שקט אחרי 23:00 מתוך כבוד לשכנים.\n• כל נזק ייגבה מהשוכר.",
  "managerName": "מזכירות קלחים",
- "managerPhone": "",
+ "managerPhone": "054-7330455",
  "outsidePct": 150,
  "priceNote": "המחירים לתושבי קלחים וכוללים מע״מ.",
  "refundHours": 24,
  "reminderHours": 24,
  "siteName": "חדרים להשכרה · קלחים",
- "siteUrl": "",
- "logoId": "logo.webp"
+ "siteUrl": "https://nimirogel.github.io/kelahim-rooms/",
+ "logoId": "logo.webp",
+ "notifyEmail": "nimirogel@gmail.com"
 }

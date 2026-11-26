@@ -818,6 +818,8 @@ function adminGeneral(body) {
         <label for="gMgr">שם מנהל/ת המבנים<input id="gMgr" data-g="managerName" value="${esc(D.managerName)}"></label>
         <label for="gPhone">וואטסאפ לקבלת הזמנות<input id="gPhone" type="tel" data-g="managerPhone" value="${esc(D.managerPhone)}" placeholder="050-0000000" dir="ltr" style="text-align:right"></label>
       </div>
+      <label for="gMail">אימייל להתראה על כל הזמנה חדשה<input id="gMail" type="email" data-g="notifyEmail" value="${esc(D.notifyEmail || "")}" dir="ltr" style="text-align:right" placeholder="office@example.com"></label>
+      <p class="small muted" style="margin-top:-6px">גם השוכר מקבל מייל אישור, אם מילא אימייל בהזמנה.</p>
       <label for="gNote">הערה על המחירים (מוצגת לשוכרים)<input id="gNote" data-g="priceNote" value="${esc(D.priceNote)}" placeholder="למשל: המחירים כוללים מע״מ"></label>
       <label for="gRefund">החזר מלא בביטול עד כמה שעות לפני<input id="gRefund" type="number" min="0" data-g="refundHours" value="${esc(D.refundHours ?? 24)}"></label>
       <label for="gOut">מחיר לתושבי חוץ (% ממחיר התושבים)<input id="gOut" type="number" min="100" step="5" data-g="outsidePct" value="${esc(D.outsidePct ?? 150)}"></label>
