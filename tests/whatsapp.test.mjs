@@ -27,7 +27,7 @@ const book = async (room, opt, hoursFromNow, phone = "050-1234567") => {
   const hh = t.toLocaleTimeString("en-GB", { timeZone: "Asia/Jerusalem", hour: "2-digit", hour12: false }).slice(0, 2);
   const start = hh + ":00", end = String((Number(hh) + 1) % 24).padStart(2, "0") + ":00";
   if (end === "00:00") return null;
-  return call("create_booking", { room_id: room, option_id: opt, name: "דנה", phone, items: [{ date, start, end }] });
+  return call("create_booking", { room_id: room, option_id: opt, name: "דנה", phone, email: "dana@example.com", items: [{ date, start, end }] });
 };
 let ok = 0; const t = async (n, f) => { await f(); ok++; console.log("✓", n); };
 

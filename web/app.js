@@ -163,7 +163,7 @@ const checkoutLink = (token, slotId) => SITE_URL() + "#checkout/" + token + "/" 
 // Personal booking links saved on this device
 const myTokens = () => { try { return JSON.parse(localStorage.getItem("myBookings") || "[]"); } catch (e) { return []; } };
 const addToken = t => { try { const l = myTokens(); if (!l.includes(t)) { l.push(t); localStorage.setItem("myBookings", JSON.stringify(l.slice(-50))); } } catch (e) {} };
-const ERR_TEXT = { clash: "מישהו הזמין את השעות האלה ממש עכשיו. חזרו ובחרו מועד אחר.", past_time: "המועד כבר עבר. בחרו מועד אחר.", missing_details: "נא למלא שם וטלפון.", too_long: "ההזמנה ארוכה מהמותר לחדר הזה.", bad_time: "שעות לא תקינות.", option_not_found: "אפשרות ההשכרה השתנתה. רעננו את הדף ונסו שוב.", room_not_found: "החדר לא נמצא. רעננו את הדף." };
+const ERR_TEXT = { clash: "מישהו הזמין את השעות האלה ממש עכשיו. חזרו ובחרו מועד אחר.", past_time: "המועד כבר עבר. בחרו מועד אחר.", missing_details: "נא למלא שם וטלפון.", missing_email: "נא למלא כתובת אימייל תקינה.", too_long: "ההזמנה ארוכה מהמותר לחדר הזה.", bad_time: "שעות לא תקינות.", option_not_found: "אפשרות ההשכרה השתנתה. רעננו את הדף ונסו שוב.", room_not_found: "החדר לא נמצא. רעננו את הדף." };
 const DEFAULT_TIPS = "צלמו את החדר כמו שהשארתם אותו:\n• מבט כללי על החדר מכמה זוויות\n• הרצפה\n• המטבחון והכיור\n• השירותים\n• השולחנות והכיסאות במקומם\n• פחי האשפה ריקים";
 const DEP_STATUS = { returned: "הפיקדון הוחזר", withheld: "הפיקדון לא הוחזר" };
 async function shrinkImage(file) {
@@ -452,7 +452,7 @@ function step3() {
       <label for="fName">שם מלא<input id="fName" autocomplete="name" required value="${esc(F.name)}"></label>
       <label for="fPhone">טלפון נייד<input id="fPhone" type="tel" inputmode="tel" autocomplete="tel" required value="${esc(F.phone)}" placeholder="050-0000000" dir="ltr" style="text-align:right"></label>
       <div class="form2">
-        <label for="fEmail">אימייל (לא חובה)<input id="fEmail" type="email" autocomplete="email" value="${esc(F.email)}" dir="ltr" style="text-align:right"></label>
+        <label for="fEmail">אימייל (לאישור ההזמנה)<input id="fEmail" type="email" autocomplete="email" required value="${esc(F.email)}" dir="ltr" style="text-align:right"></label>
         <label for="fPeople">כמה משתתפים<input id="fPeople" type="number" min="1" inputmode="numeric" value="${esc(F.people)}"></label>
       </div>
       <label for="fPurpose">לאיזו מטרה?<input id="fPurpose" value="${esc(F.purpose)}" placeholder="יום הולדת, חוג, אסיפה…"></label>
@@ -592,6 +592,7 @@ async function submitBooking() {
   const problems = [];
   if (F.name.length < 2) problems.push("נא למלא שם מלא");
   if (String(F.phone).replace(/\D/g, "").length < 9) problems.push("נא למלא מספר טלפון תקין");
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(F.email)) problems.push("נא למלא כתובת אימייל תקינה");
   if (!F.agree) problems.push("יש לאשר את הנהלים ואת תנאי הביטול");
   if (!S.occ || !S.occ.ok.length) problems.push("אין מועד פנוי להזמנה");
   if (problems.length) { err.textContent = problems.join(" · "); err.hidden = false; return; }
@@ -761,6 +762,7 @@ function adminBookings(body) {
           <label for="mEnd">עד שעה<input id="mEnd" type="time" value="22:00"></label>
           <label for="mName">שם השוכר<input id="mName"></label>
           <label for="mPhone">טלפון<input id="mPhone" type="tel"></label>
+          <label for="mEmail">אימייל השוכר (לאישור ולביטול)<input id="mEmail" type="email" dir="ltr" style="text-align:right"></label>
           <label for="mPrice">מחיר (₪)<input id="mPrice" type="number" min="0" inputmode="numeric"></label>
           <label for="mStatus">סטטוס<select id="mStatus"><option value="pending">ממתין לתשלום</option><option value="paid">שולם</option></select></label>
           <label for="mRep">חזרה<select id="mRep"><option value="once">פעם אחת</option><option value="weekly">כל שבוע</option><option value="daily">כל יום</option></select></label>
@@ -785,7 +787,7 @@ function adminBookings(body) {
     const dates = occ.ok, many = dates.length > 1, price = Number($("#mPrice").value || 0);
     try {
       await api.createBooking({ room_id: v.roomId, source: "manual", status: $("#mStatus").value, residency: $("#mRes").value, option_name: "הזמנה ידנית",
-        name: $("#mName").value.trim(), phone: $("#mPhone").value.trim(), purpose: $("#mPurpose").value.trim(), repeat: many ? mode : null, until: many ? until : null,
+        name: $("#mName").value.trim(), phone: $("#mPhone").value.trim(), email: $("#mEmail").value.trim(), purpose: $("#mPurpose").value.trim(), repeat: many ? mode : null, until: many ? until : null,
         items: dates.map(d => ({ date: d, start: v.start, end: v.end, price })) });
       toast(many ? `${dates.length} מועדים נשמרו${occ.bad.length ? ` (${occ.bad.length} דולגו)` : ""}` : "ההזמנה נשמרה");
       await refreshSlots(); rerender();

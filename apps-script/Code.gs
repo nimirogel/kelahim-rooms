@@ -7,9 +7,11 @@ const SUPABASE_URL = "https://zcnypdwhemjtxudvctwm.supabase.co";
 const SUPABASE_KEY = "sb_publishable_iiNBXEtRuvDWDzJGP5x8gA_ZThnP0rT";
 
 function doPost(e) {
-  const token = String((JSON.parse(e.postData.contents || "{}")).token || "");
+  const body = JSON.parse(e.postData.contents || "{}");
+  const token = String(body.token || "");
   if (!/^[a-f0-9]{20,80}$/.test(token)) return out("bad token");
-  Utilities.sleep(1500); // ההזמנה נשמרת במלואה לפני שהבקשה מגיעה, אבל ליתר ביטחון
+  Utilities.sleep(1500); // ממתינים רגע, כדי שביטול של כמה מועדים ייצא במייל אחד
+  if (body.event === "cancel") return sendCancel(token);
   const res = UrlFetchApp.fetch(SUPABASE_URL + "/rest/v1/rpc/claim_booking_mail", {
     method: "post", contentType: "application/json", muteHttpExceptions: true,
     headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY },
@@ -27,6 +29,50 @@ function doPost(e) {
       { htmlBody: renterHtml(d), name: name, replyTo: d.manager_email || undefined });
   }
   return out("sent");
+}
+
+function sendCancel(token) {
+  const res = UrlFetchApp.fetch(SUPABASE_URL + "/rest/v1/rpc/claim_cancel_mail", {
+    method: "post", contentType: "application/json", muteHttpExceptions: true,
+    headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY },
+    payload: JSON.stringify({ tok: token })
+  });
+  const d = JSON.parse(res.getContentText() || "null");
+  if (!d || !d.token) return out("nothing to send");
+  const name = d.site_name || "השכרת חדרים";
+  if (d.manager_email) {
+    GmailApp.sendEmail(d.manager_email, "ביטול הזמנה: " + d.room + " · " + firstWhen(d), plain(cancelManagerHtml(d)),
+      { htmlBody: cancelManagerHtml(d), name: name, replyTo: d.email || undefined });
+  }
+  if (d.email) {
+    GmailApp.sendEmail(d.email, "ההזמנה בוטלה: " + d.room + " · " + firstWhen(d), plain(cancelRenterHtml(d)),
+      { htmlBody: cancelRenterHtml(d), name: name, replyTo: d.manager_email || undefined });
+  }
+  return out("sent");
+}
+function refundText(d) {
+  const s = d.slots || [], paid = s.filter(x => x.paid), full = paid.filter(x => x.refund === "full");
+  const sum = a => a.reduce((t, x) => t + Number(x.price || 0), 0);
+  if (!paid.length) return "לא בוצע תשלום על המועדים שבוטלו, ולכן אין חיוב.";
+  if (full.length === paid.length) return "יוחזר מלוא הסכום ששולם: " + money(sum(full)) + ".";
+  if (!full.length) return "הביטול נעשה פחות מ־" + d.refund_hours + " שעות לפני המועד, ולכן לפי תנאי הביטול אין החזר.";
+  return "יוחזרו " + money(sum(full)) + " (על מועדים שבוטלו בזמן). על השאר אין החזר לפי תנאי הביטול.";
+}
+function cancelManagerHtml(d) {
+  return wrap("הזמנה בוטלה", "<table style='border-collapse:collapse'>" +
+    row("חדר", esc(d.room) + (d.building ? " · " + esc(d.building) : "")) + row("מועדים שבוטלו", slotsHtml(d)) +
+    row("בוטל על ידי", d.cancelled_by === "admin" ? "מנהל" : "השוכר/ת") +
+    row("שוכר/ת", esc(d.name)) + row("טלפון", "<span dir='ltr'>" + esc(d.phone) + "</span>") + row("אימייל", esc(d.email)) +
+    row("החזר", esc(refundText(d))) + (d.remaining ? row("נשארו בהזמנה", (d.remaining === 1 ? "מועד אחד" : d.remaining + " מועדים")) : "") + "</table>" +
+    (d.site_url ? "<p><a href='" + esc(d.site_url) + "#admin' style='color:#3f7d1c'>למסך הניהול</a></p>" : ""));
+}
+function cancelRenterHtml(d) {
+  return wrap("ההזמנה בוטלה", "<p>שלום " + esc(d.name) + ", " + (d.cancelled_by === "admin" ? "מנהל המבנים ביטל" : "ביטלת") + " את ההזמנה הזו:</p><table style='border-collapse:collapse'>" +
+    row("חדר", esc(d.room) + (d.building ? " · " + esc(d.building) : "")) + row("מועדים שבוטלו", slotsHtml(d)) +
+    (d.remaining ? row("נשארו בהזמנה", (d.remaining === 1 ? "מועד אחד" : d.remaining + " מועדים")) : "") + "</table>" +
+    "<p><b>החזר כספי:</b> " + esc(refundText(d)) + "</p>" +
+    (d.manager_phone ? "<p>לשאלות: " + esc(d.manager_name || "מנהל המבנים") + " · <span dir='ltr'>" + esc(d.manager_phone) + "</span></p>" : "") +
+    (d.site_url ? "<p><a href='" + esc(d.site_url) + "' style='color:#3f7d1c'>להזמנה חדשה</a></p>" : ""));
 }
 
 // לבדיקה ידנית מתוך העורך: בוחרים testSend ולוחצים Run (שולח מייל דוגמה לחשבון שלך)

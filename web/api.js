@@ -1,7 +1,7 @@
 // Data layer: Supabase when web/config.js is filled in, otherwise an in-browser demo with sample data.
 (() => {
   const CFG = window.KELAHIM || {};
-  const ERRS = ["clash", "past_time", "missing_details", "room_not_found", "option_not_found", "too_long", "bad_block", "bad_time", "nothing_to_cancel", "checkout_not_allowed"];
+  const ERRS = ["missing_email", "clash", "past_time", "missing_details", "room_not_found", "option_not_found", "too_long", "bad_block", "bad_time", "nothing_to_cancel", "checkout_not_allowed"];
   const errCode = e => { const m = String(e?.message || e?.code || e || ""); return ERRS.find(c => m.includes(c)) || "unavailable"; };
   const fail = e => { throw { code: errCode(e) }; };
 
@@ -93,6 +93,7 @@
       await load();
       const room = findRoom(st.settings, p.room_id); if (!room) throw { code: "room_not_found" };
       if ((p.name || "").trim().length < 2 || String(p.phone || "").replace(/\D/g, "").length < 9) throw { code: "missing_details" };
+      if (!(st.admin && p.source === "manual") && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(p.email || "").trim())) throw { code: "missing_email" };
       const adm = st.admin && p.source === "manual", opt = (room.options || []).find(o => o.id === p.option_id);
       if (!adm && !opt) throw { code: "option_not_found" };
       const mult = !adm && p.residency === "outside" ? Number(st.settings.outsidePct || 150) / 100 : 1, buf = Number(room.bufferMin || 0) * 60000;

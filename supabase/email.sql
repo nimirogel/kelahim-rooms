@@ -69,10 +69,72 @@ begin
 end;
 $$;
 
+-- ---------- ביטולים: מייל למנהל ולשוכר ----------
+alter table public.slots add column if not exists cancel_mailed_at timestamptz;
+
+-- פעם אחת לכל פעולת ביטול (גם כשמבוטלת סדרה שלמה בבת אחת)
+create or replace function public.notify_cancellation() returns trigger
+language plpgsql security definer set search_path = public, extensions as $$
+declare url text; t text;
+begin
+  select decrypted_secret into url from vault.decrypted_secrets where name = 'mail_webhook_url';
+  if coalesce(url, '') = '' then return null; end if;
+  for t in select distinct b.token from new_rows n join old_rows o on o.id = n.id join bookings b on b.id = n.booking_id
+           where n.status = 'cancelled' and o.status <> 'cancelled' loop
+    perform net.http_post(url := url, body := jsonb_build_object('token', t, 'event', 'cancel'),
+                          headers := '{"Content-Type": "application/json"}'::jsonb);
+  end loop;
+  return null;
+exception when others then
+  return null;
+end;
+$$;
+
+drop trigger if exists slots_notify_cancel on public.slots;
+create trigger slots_notify_cancel after update on public.slots
+  referencing old table as old_rows new table as new_rows
+  for each statement execute function public.notify_cancellation();
+
+-- הסקריפט מבקש את פרטי הביטול: רק מועדים שבוטלו ב־15 הדקות האחרונות ועוד לא נשלח עליהם מייל
+create or replace function public.claim_cancel_mail(tok text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare cfg jsonb; b bookings; room jsonb; bld jsonb; sl jsonb; v_by text; v_sum int;
+begin
+  select * into b from bookings where token = tok;
+  if b.id is null then return null; end if;
+  with c as (
+    update slots set cancel_mailed_at = now()
+    where booking_id = b.id and status = 'cancelled' and cancel_mailed_at is null and cancelled_at > now() - interval '15 minutes'
+    returning *)
+  select jsonb_agg(jsonb_build_object(
+      'day', (array['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'])[extract(dow from date)::int + 1],
+      'date', to_char(date, 'DD.MM.YYYY'), 'start', start_time, 'end', end_time, 'end_date', to_char(end_date, 'DD.MM.YYYY'),
+      'price', price, 'paid', paid_at is not null, 'refund', refund) order by starts_at),
+    max(cancelled_by), sum(price)
+    into sl, v_by, v_sum from c;
+  if sl is null then return null; end if;
+  select data into cfg from settings where id = 1;
+  select r, bb into room, bld from jsonb_array_elements(cfg->'buildings') bb, jsonb_array_elements(bb->'rooms') r
+    where r->>'id' = b.room_id limit 1;
+  return jsonb_build_object(
+    'event', 'cancel', 'cancelled_by', coalesce(v_by, ''), 'cancelled_total', coalesce(v_sum, 0),
+    'site_name', coalesce(cfg->>'siteName', 'השכרת חדרים'), 'site_url', coalesce(nullif(cfg->>'siteUrl', ''), ''),
+    'manager_email', coalesce(cfg->>'notifyEmail', ''), 'manager_name', coalesce(cfg->>'managerName', ''),
+    'manager_phone', coalesce(cfg->>'managerPhone', ''), 'refund_hours', coalesce(nullif(cfg->>'refundHours', '')::int, 24),
+    'room', coalesce(room->>'name', b.room_id), 'building', coalesce(bld->>'name', ''),
+    'token', b.token, 'name', b.name, 'phone', b.phone, 'email', coalesce(b.email, ''), 'source', b.source,
+    'remaining', (select count(*) from slots where booking_id = b.id and status <> 'cancelled' and starts_at > now()),
+    'slots', sl);
+end;
+$$;
+
+revoke all on function public.notify_cancellation() from public;
 revoke all on function public.notify_new_booking() from public;
 do $$ begin
   if exists (select 1 from pg_roles where rolname = 'anon') then
     revoke all on function public.notify_new_booking() from anon, authenticated;
+    revoke all on function public.notify_cancellation() from anon, authenticated;
     grant execute on function public.claim_booking_mail(text) to anon, authenticated;
+    grant execute on function public.claim_cancel_mail(text) to anon, authenticated;
   end if;
 end $$;

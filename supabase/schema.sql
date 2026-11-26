@@ -113,6 +113,7 @@ begin
   if length(coalesce(trim(p->>'name'), '')) < 2 or length(regexp_replace(coalesce(p->>'phone', ''), '\D', '', 'g')) < 9 then
     raise exception 'missing_details';
   end if;
+  if not adm and coalesce(trim(p->>'email'), '') !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then raise exception 'missing_email'; end if;
   if jsonb_array_length(coalesce(p->'items', '[]'::jsonb)) not between 1 and 120 then raise exception 'bad_items'; end if;
 
   buf := coalesce(nullif(room->>'bufferMin', '')::int, 0);

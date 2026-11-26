@@ -57,4 +57,31 @@ await t("a failed booking sends nothing", async () => {
   try { await book({ items: [{ date: day(11), start: "11:00", end: "12:00" }] }); } catch (e) { assert.match(e.message, /clash/); }
   assert.equal((await db.query("select count(*)::int n from net.sent")).rows[0].n, before);
 });
+await t("cancelling sends one cancel notice per action", async () => {
+  const r = await book({ items: [{ date: day(20), start: "10:00", end: "12:00" }, { date: day(27), start: "10:00", end: "12:00" }] });
+  await call("claim_booking_mail", r.token);
+  const before = (await db.query("select count(*)::int n from net.sent")).rows[0].n;
+  await call("cancel_booking", r.token, null);
+  const sent = (await db.query("select body from net.sent order by id")).rows.slice(before).map(x => x.body);
+  assert.equal(sent.length, 1);
+  assert.deepEqual(sent[0], { token: r.token, event: "cancel" });
+  const d = await call("claim_cancel_mail", r.token);
+  assert.equal(d.event, "cancel"); assert.equal(d.cancelled_by, "renter"); assert.equal(d.slots.length, 2);
+  assert.equal(d.slots[0].refund, "full"); assert.equal(d.remaining, 0); assert.equal(d.email, "dana@example.com");
+  assert.equal(await call("claim_cancel_mail", r.token), null);
+});
+await t("a manager cancelling one date also notifies", async () => {
+  const r = await book({ items: [{ date: day(30), start: "10:00", end: "12:00" }, { date: day(37), start: "10:00", end: "12:00" }] });
+  const before = (await db.query("select count(*)::int n from net.sent")).rows[0].n;
+  await db.query("update slots set status = 'cancelled', cancelled_at = now(), cancelled_by = 'admin', refund = 'full' where id = (select s.id from slots s join bookings b on b.id = s.booking_id where b.token = $1 order by s.starts_at limit 1)", [r.token]);
+  assert.equal((await db.query("select count(*)::int n from net.sent")).rows[0].n, before + 1);
+  const d = await call("claim_cancel_mail", r.token);
+  assert.equal(d.cancelled_by, "admin"); assert.equal(d.slots.length, 1); assert.equal(d.remaining, 1);
+});
+await t("other updates (marking paid) send nothing", async () => {
+  const r = await book({ items: [{ date: day(40), start: "10:00", end: "12:00" }] });
+  const before = (await db.query("select count(*)::int n from net.sent")).rows[0].n;
+  await db.query("update slots set status = 'paid', paid_at = now() where booking_id = (select id from bookings where token = $1)", [r.token]);
+  assert.equal((await db.query("select count(*)::int n from net.sent")).rows[0].n, before);
+});
 console.log(`\n${ok} tests passed`);
