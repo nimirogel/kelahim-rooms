@@ -3,115 +3,6 @@
   {
    "address": "",
    "closedDates": [],
-   "id": "noar",
-   "name": "מועדון הנוער",
-   "rooms": [
-    {
-     "bufferMin": 0,
-     "capacity": "",
-     "description": "",
-     "id": "noar1",
-     "maxAdvanceDays": 60,
-     "name": "חדר 1",
-     "options": [
-      {
-       "id": "n1",
-       "kind": "hourly",
-       "maxHours": 6,
-       "minHours": 1,
-       "name": "לפי שעה",
-       "price": 50
-      }
-     ],
-     "payLink": "https://private.invoice4u.co.il/newsite/he/clearing/public/i4u-clearing?ProductGuid=7919fb30-1284-4f35-8924-85274efcb072",
-     "rules": "",
-     "photoId": "room-noar.svg"
-    },
-    {
-     "bufferMin": 0,
-     "capacity": "",
-     "description": "",
-     "id": "noar2",
-     "maxAdvanceDays": 60,
-     "name": "חדר 2",
-     "options": [
-      {
-       "id": "n2",
-       "kind": "hourly",
-       "maxHours": 6,
-       "minHours": 1,
-       "name": "לפי שעה",
-       "price": 50
-      }
-     ],
-     "payLink": "https://private.invoice4u.co.il/newsite/he/clearing/public/i4u-clearing?ProductGuid=7919fb30-1284-4f35-8924-85274efcb072",
-     "rules": "",
-     "photoId": "room-noar.svg"
-    },
-    {
-     "bufferMin": 0,
-     "capacity": "",
-     "description": "",
-     "id": "noar3",
-     "maxAdvanceDays": 60,
-     "name": "חדר 3",
-     "options": [
-      {
-       "id": "n3",
-       "kind": "hourly",
-       "maxHours": 6,
-       "minHours": 1,
-       "name": "לפי שעה",
-       "price": 50
-      }
-     ],
-     "payLink": "https://private.invoice4u.co.il/newsite/he/clearing/public/i4u-clearing?ProductGuid=7919fb30-1284-4f35-8924-85274efcb072",
-     "rules": "",
-     "photoId": "room-noar.svg"
-    }
-   ],
-   "schedule": {
-    "0": {
-     "from": "08:00",
-     "open": true,
-     "to": "23:00"
-    },
-    "1": {
-     "from": "08:00",
-     "open": true,
-     "to": "23:00"
-    },
-    "2": {
-     "from": "08:00",
-     "open": true,
-     "to": "23:00"
-    },
-    "3": {
-     "from": "08:00",
-     "open": true,
-     "to": "23:00"
-    },
-    "4": {
-     "from": "08:00",
-     "open": true,
-     "to": "23:00"
-    },
-    "5": {
-     "from": "08:00",
-     "open": true,
-     "to": "15:00"
-    },
-    "6": {
-     "auto": true,
-     "from": "17:00",
-     "open": true,
-     "to": "23:00"
-    }
-   }
-  },
-  {
-   "address": "",
-   "closedDates": [],
    "id": "public",
    "name": "מבני ציבור",
    "rooms": [
@@ -362,6 +253,115 @@
      "from": "17:00",
      "open": true,
      "to": "22:00"
+    }
+   }
+  },
+  {
+   "address": "",
+   "closedDates": [],
+   "id": "noar",
+   "name": "מועדון הנוער",
+   "rooms": [
+    {
+     "bufferMin": 0,
+     "capacity": "",
+     "description": "",
+     "id": "noar1",
+     "maxAdvanceDays": 60,
+     "name": "חדר 1",
+     "options": [
+      {
+       "id": "n1",
+       "kind": "hourly",
+       "maxHours": 6,
+       "minHours": 1,
+       "name": "לפי שעה",
+       "price": 50
+      }
+     ],
+     "payLink": "https://private.invoice4u.co.il/newsite/he/clearing/public/i4u-clearing?ProductGuid=7919fb30-1284-4f35-8924-85274efcb072",
+     "rules": "",
+     "photoId": "room-noar.svg"
+    },
+    {
+     "bufferMin": 0,
+     "capacity": "",
+     "description": "",
+     "id": "noar2",
+     "maxAdvanceDays": 60,
+     "name": "חדר 2",
+     "options": [
+      {
+       "id": "n2",
+       "kind": "hourly",
+       "maxHours": 6,
+       "minHours": 1,
+       "name": "לפי שעה",
+       "price": 50
+      }
+     ],
+     "payLink": "https://private.invoice4u.co.il/newsite/he/clearing/public/i4u-clearing?ProductGuid=7919fb30-1284-4f35-8924-85274efcb072",
+     "rules": "",
+     "photoId": "room-noar.svg"
+    },
+    {
+     "bufferMin": 0,
+     "capacity": "",
+     "description": "",
+     "id": "noar3",
+     "maxAdvanceDays": 60,
+     "name": "חדר 3",
+     "options": [
+      {
+       "id": "n3",
+       "kind": "hourly",
+       "maxHours": 6,
+       "minHours": 1,
+       "name": "לפי שעה",
+       "price": 50
+      }
+     ],
+     "payLink": "https://private.invoice4u.co.il/newsite/he/clearing/public/i4u-clearing?ProductGuid=7919fb30-1284-4f35-8924-85274efcb072",
+     "rules": "",
+     "photoId": "room-noar.svg"
+    }
+   ],
+   "schedule": {
+    "0": {
+     "from": "08:00",
+     "open": true,
+     "to": "23:00"
+    },
+    "1": {
+     "from": "08:00",
+     "open": true,
+     "to": "23:00"
+    },
+    "2": {
+     "from": "08:00",
+     "open": true,
+     "to": "23:00"
+    },
+    "3": {
+     "from": "08:00",
+     "open": true,
+     "to": "23:00"
+    },
+    "4": {
+     "from": "08:00",
+     "open": true,
+     "to": "23:00"
+    },
+    "5": {
+     "from": "08:00",
+     "open": true,
+     "to": "15:00"
+    },
+    "6": {
+     "auto": true,
+     "from": "17:00",
+     "open": true,
+     "to": "23:00"
     }
    }
   }
