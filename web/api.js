@@ -17,6 +17,13 @@
   const toSnake = patch => Object.fromEntries(Object.entries(patch).filter(([k]) => SNAKE[k]).map(([k, v]) => [SNAKE[k], v]));
   const fromBooking = b => ({ ...b, roomId: b.room_id, optionName: b.option_name, slots: (b.slots || []).map(s => toSlot({ ...s, booking_id: b.id })) });
 
+  if (CFG.supabaseUrl && CFG.supabaseAnonKey && !window.supabase) {
+    // the site is set up for the real database but the library did not load: report it, never show demo data
+    const down = async () => { throw { code: "unavailable" }; };
+    window.api = { mode: "live", isAdmin: async () => false, loadSettings: down, listSlots: down, getBookings: down, createBooking: down, cancelMine: down,
+      uploadCheckoutPhoto: down, submitCheckout: down, updateSlot: down, uploadSiteImage: down, signedUrls: async () => ({}), signIn: down, signOut: async () => {} };
+    return;
+  }
   if (CFG.supabaseUrl && CFG.supabaseAnonKey && window.supabase) {
     const sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey);
     const isAdmin = async () => { const { data: s } = await sb.auth.getSession(); if (!s.session) return false; const { data } = await sb.rpc("is_admin"); return !!data; };

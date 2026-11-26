@@ -207,6 +207,7 @@ function render() {
     return adminCalendar($("#calBody"), true);
   }
   if (!S.configLoaded) { app.innerHTML = `<div class="empty">${S.offline ? "הנתונים עדיין לא נטענו. ייתכן שיש בעיית חיבור – נסו לרענן בעוד רגע." : "טוען את החדרים והזמינות…"}</div>`; return; }
+  if (S.loadError) return renderLoadError(app);
   const bs = (S.config.buildings || []).filter(b => (b.rooms || []).length);
   if (!bs.length) {
     app.innerHTML = `<div class="empty stack" style="align-items:center"><h2>עדיין לא הוגדרו חדרים</h2><p>${S.isAdmin ? "התחילו במסך הניהול: הוסיפו מבנים, חדרים, מחירים ושעות פעילות." : "החדרים יופיעו כאן ברגע שמנהל המבנים יגדיר אותם."}</p>${S.isAdmin ? `<button class="primary" id="goAdm">למסך הניהול</button>` : ""}</div>`;
@@ -979,13 +980,40 @@ async function refreshSlots() {
   const from = new Date(); from.setDate(1); from.setMonth(from.getMonth() - 1);
   try { S.slots = await api.listSlots(ymd(from), S.isAdmin && S.view === "admin"); S.slotsLoaded = true; S.offline = false; } catch (e) { S.offline = true; }
 }
+// Load the site settings, retrying on flaky mobile connections; remember the last good copy on this device
+async function loadSettingsWithRetry() {
+  for (let i = 0; i < 4; i++) {
+    try {
+      S.config = await api.loadSettings(); S.configLoaded = true; S.loadError = false; S.offline = false;
+      try { localStorage.setItem("lastSettings", JSON.stringify(S.config)); } catch (e) {}
+      return true;
+    } catch (e) {
+      console.error("[kelahim] loading settings failed, attempt " + (i + 1), e);
+      await new Promise(r => setTimeout(r, [800, 2000, 4000, 0][i]));
+    }
+  }
+  let saved = null; try { saved = JSON.parse(localStorage.getItem("lastSettings") || "null"); } catch (e) {}
+  if (!saved) { try { saved = await (await fetch("demo-settings.json", { cache: "no-store" })).json(); } catch (e) {} }
+  S.config = saved || blankConfig(); S.configLoaded = true; S.loadError = true; S.offline = true;
+  return false;
+}
+function renderLoadError(app) {
+  const ph = S.config?.managerPhone, wa = waLink(ph, "שלום, ניסיתי להזמין חדר באתר ולא הצלחתי להתחבר.");
+  app.innerHTML = `<section class="section narrow" style="margin-top:10px">
+    <div class="notice bad"><b>אין כרגע חיבור למערכת ההזמנות.</b><br>זה קורה לפעמים בחיבור סלולרי חלש, או כשהאינטרנט מסונן (למשל רימון או נתיב) או כשיש חוסם פרסומות שחוסם את האתר supabase.co.</div>
+    <button class="primary big-btn" id="retryLoad">לנסות שוב</button>
+    <p class="small muted">אפשר גם לנסות מרשת אחרת (Wi-Fi במקום סלולרי, או להפך).</p>
+    ${ph ? `<div class="stack" style="gap:8px"><h3>להזמנה בטלפון</h3><p>${esc(S.config.managerName || "מנהל המבנים")} · <span class="num" dir="ltr">${esc(ph)}</span></p>${wa ? `<a class="btn big-btn" href="${esc(wa)}" target="_blank" rel="noopener">שליחת הודעה בוואטסאפ</a>` : ""}</div>` : ""}
+  </section>`;
+  $("#retryLoad").onclick = async e => { e.target.disabled = true; e.target.textContent = "מתחבר…"; if (await loadSettingsWithRetry()) { await Promise.all([refreshSlots(), refreshMine()]); } render(); };
+}
+
 render();
 (async () => {
   S.db = true; S.canUpload = true;
   if (api.mode === "demo") { $("#demoBanner").hidden = false; $("#demoReset").onclick = async () => { await api.resetDemo(); try { localStorage.removeItem("myBookings"); } catch (e) {} location.reload(); }; }
   try { S.isAdmin = await api.isAdmin(); } catch (e) { S.isAdmin = false; }
-  try { S.config = await api.loadSettings(); } catch (e) { S.config = blankConfig(); S.offline = true; }
-  S.configLoaded = true;
+  await loadSettingsWithRetry();
   await Promise.all([refreshSlots(), refreshMine()]);
   render();
   // keep availability fresh: other people book too
